@@ -28,9 +28,9 @@ data:
       gitBasicAuthPolicy = HTTP
 
     [ldap]
-      server = {add your values}
-      accountBase = {add your values}
-      groupBase =  {add your values}
+      server = {{ .auth.server }}
+      accountBase = {{ .auth.groupBase }}
+      groupBase = {{ .auth.groupBase }}
       username =
       password =
       accountFullName = cn

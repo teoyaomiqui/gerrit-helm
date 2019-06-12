@@ -11,14 +11,16 @@ nameOverride: ""
 fullnameOverride: ""
 
 services:
-  - type: ClusterIP
+  - type: NodePort
     name: http
     port: 8080
     targetPort: 8080
+    nodePort: 30088
   - type: NodePort
     name: ssh
     port: 29418
     targetPort: 29418
+    nodePort: 30418
 
 persistence:
   enabled: true
@@ -35,6 +37,9 @@ persistence:
 config:
   auth:
     type: ldap
+    server:
+    accountBase:
+    groupBase:
   index:
     type: LUCENE
 

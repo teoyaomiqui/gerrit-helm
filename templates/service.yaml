@@ -20,6 +20,7 @@ spec:
       targetPort: {{ .targetPort }}
       protocol: TCP
       name: {{ .name }}
+      nodePort: {{ .nodePort }}
   selector:
     app: {{ $fullName }}
     release: {{ $releaseName }}
