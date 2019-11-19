@@ -20,26 +20,13 @@ service:
     port: 29418
     targetPort: 29418
 
+ingress:
+  enabled: false
+  tls:
+    enabled: false
+
 persistence:
-  enabled: true
-  volumes:
-  - name: git
-    size: 1Gi
-    storageClass: csi-sc-cinderplugin
-  - name: etc
-    size: 1Gi
-  - name: index
-    storageClass: csi-sc-cinderplugin
-    size: 1Gi
-  - name: cache
-    size: 2Gi
-    storageClass: csi-sc-cinderplugin
-  - name: data
-    size: 2Gi
-    storageClass: csi-sc-cinderplugin
-  - name: db
-    size: 2Gi
-    storageClass: csi-sc-cinderplugin
+  enabled: false
 
 config:
   auth:
@@ -49,6 +36,8 @@ config:
     groupBase:
   index:
     type: LUCENE
+  httpd:
+    listenUrl: http://*:8080
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

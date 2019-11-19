@@ -1,4 +1,5 @@
 {{- $volumes := .Values.persistence.volumes }}
+{{- $extraVars := .Values.config.extraVars }}
 {{- $releaseName := .Release.Name }}
 
 apiVersion: apps/v1
@@ -26,9 +27,26 @@ spec:
         fsGroup: 1000
       containers:
         - name: {{ .Chart.Name }}
+          env:
+          - name: GERRIT_HTTPD_LISTEN_URL
+            value: {{ .Values.config.httpd.listenUrl }}
+    {{ if .Values.ingress.enabled }}
+      {{ if .Values.ingress.tls.enabled }}
+          - name: CANONICAL_WEB_URL
+            value: https://{{ .Values.ingress.canonicalName }}
+      {{ else }}
+          - name: CANONICAL_WEB_URL
+            value: http://{{ .Values.ingress.canonicalName }}
+      {{end}}
+    {{end}}
+
+  {{- range $extraVars }}
+          - name: {{ .name | quote }}
+            value: {{ .value | quote }}
+  {{end}}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           imagePullPolicy: IfNotPresent
-          command: ["sh", "-c", "cp /var/gerrit/config/initialize-gerrit.sh /var/gerrit && sh /var/gerrit/initialize-gerrit.sh"]
+          command: ["sh", "-c", "/var/gerrit/init/entrypoint.sh"]
           ports:
             - name: http
               containerPort: 8080
@@ -55,8 +73,8 @@ spec:
             successThreshold: 1
             timeoutSeconds: 5
           volumeMounts:
-            - name: gerrit-config
-              mountPath: /var/gerrit/config
+            - name: entrypoint
+              mountPath: /var/gerrit/init
 {{ if .Values.persistence.enabled }}
   {{- range $volumes }}
             - name: {{ .name | quote }}
@@ -68,14 +86,13 @@ spec:
 {{ toYaml . | indent 8 }}
     {{- end }}
       volumes:
-        - name: gerrit-config
+        - name: entrypoint
           configMap:
-            name: gerrit-config
+            name: gerrit-override
             items:
-            - key: gerrit.config
-              path: gerrit.config
-            - key: initialize-gerrit.sh
-              path: initialize-gerrit.sh
+            - key: entrypoint
+              path: entrypoint.sh
+              mode: 511
 {{ if .Values.persistence.enabled }}
   volumeClaimTemplates:
   {{- range $volumes }}

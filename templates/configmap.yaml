@@ -1,74 +1,44 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gerrit-config
+  name: gerrit-override
   labels:
     app.kubernetes.io/name: {{ include "gerrit.name" . }}
     helm.sh/chart: {{ include "gerrit.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  gerrit.config: |-
-
-    [gerrit]
-      basePath = git
-    {{- $releaseName := .Release.Name }}
-    {{- with .Values.config }}
-
-    [database]
-      type = h2
-      database = db/ReviewDB
-
-    [index]
-      type = {{ .index.type }}
-
-    [auth]
-      type = {{ .auth.type }}
-      gitBasicAuth = true
-      gitBasicAuthPolicy = HTTP
-
-    [ldap]
-      server = {{ .auth.server }}
-      accountBase = {{ .auth.groupBase }}
-      groupBase = {{ .auth.groupBase }}
-      username =
-      password =
-      accountFullName = cn
-      accountPattern = (&(objectClass=person)(uid=${username}))
-      accountEmailAddress = mail
-      groupMemberPattern = (&(objectClass=Posixgroup)(member=${cn}))
-      sslVerify =
-      accountSshUserName =
-
-    [cache]
-      directory = cache
-    {{- end }}
-
-  initialize-gerrit.sh: |-
+  entrypoint: |-
+    if [ ! -d /var/gerrit/git/All-Projects.git ]; then
+      echo "Initializing Gerrit site ..."
+      java -jar /var/gerrit/bin/gerrit.war init --batch --install-all-plugins -d /var/gerrit
+      java -jar /var/gerrit/bin/gerrit.war reindex -d /var/gerrit
+      git config -f /var/gerrit/etc/gerrit.config --add container.javaOptions "-Djava.security.egd=file:/dev/./urandom"
+    fi
     set -ex
 
     GERRIT_HOME=/var/gerrit
     GERRIT_CONFIG=$GERRIT_HOME/etc/gerrit.config
-    GERRIT_BIN=/var/gerrit/bin
     GERRIT_WAR=$GERRIT_BIN/gerrit.war
 
-    if [ ! -f /var/gerrit/.gerrit-initialized ]; then
+    git config -f "${GERRIT_CONFIG}" ldap.server "${GERRIT_LDAP_SERVER}"
+    git config -f "${GERRIT_CONFIG}" ldap.accountBase "${GERRIT_LDAP_ACCOUNT_BASE}"
+    git config -f "${GERRIT_CONFIG}" ldap.groupBase "${GERRIT_LDAP_GROUP_BASE}"
+    git config -f "${GERRIT_CONFIG}" ldap.user "${GERRIT_LDAP_USER}"
+    git config -f "${GERRIT_CONFIG}" ldap.password "${GERRIT_LDAP_PASSWORD}"
+    git config -f "${GERRIT_CONFIG}" ldap.accountFullName cn
+    git config -f "${GERRIT_CONFIG}" ldap.accountPattern '(&(objectClass=person)(uid=${username}))'
+    git config -f "${GERRIT_CONFIG}" ldap.accountEmailAddress "mail"
+    git config -f "${GERRIT_CONFIG}" ldap.groupMemberPattern '(&(objectClass=Posixgroup)(member=${cn}))'
+    git config -f "${GERRIT_CONFIG}" ldap.sslVerify "${GERRIT_LDAP_SSL_VERIFY}"
+    git config -f "${GERRIT_CONFIG}" ldap.accountSshUserName "${ACCOUNT_SSH_USER_NAME}"
+    git config -f "${GERRIT_CONFIG}" auth.type "ldap"
+    git config -f "${GERRIT_CONFIG}" auth.gitBasicAuth 'true'
+    git config -f "${GERRIT_CONFIG}" auth.gitBasicAuthPolicy HTTP
+    git config -f "${GERRIT_CONFIG}" httpd.listenUrl "${GERRIT_HTTPD_LISTEN_URL:-http://*:8080}"
+    git config -f "${GERRIT_CONFIG}" gerrit.canonicalWebUrl "${CANONICAL_WEB_URL:-http://$HOSTNAME}"
+    git config -f "${GERRIT_CONFIG}" gerrit.basePath "git"
+    git config -f "${GERRIT_CONFIG}" plugins.allowRemoteAdmin 'true'
+    git config -f "${GERRIT_CONFIG}" sendemail.enable 'false'
 
-      # Delete everything 
-      find $GERRIT_HOME/ -maxdepth 1 ! -regex ".*\(\/\|bin\|cache\|config\|db\|index\|git\|etc\)$" -exec rm -r {} \;
-
-      # Copy config from configmap/gerrit-config
-      cp $GERRIT_HOME/config/gerrit.config $GERRIT_HOME/etc
-
-      # Initialize gerrit dirs if they're empty 
-      java -jar $GERRIT_WAR init --batch --install-all-plugins -d $GERRIT_HOME
-      java -jar $GERRIT_WAR reindex -d $GERRIT_HOME
-
-      git config -f $GERRIT_CONFIG container.javaOptions "-Djava.security.egd=file:/dev/./urandom"
-      git config -f $GERRIT_CONFIG gerrit.canonicalWebUrl http://$HOSTNAME:8080/
-      git config -f $GERRIT_CONFIG noteDb.changes.autoMigrate true
-      
-      touch $GERRIT_HOME/etc/.gerrit-initialized
-    fi
-
-    sh -c "$GERRIT_BIN/gerrit.sh run"
+    exec /var/gerrit/bin/gerrit.sh run
