@@ -10,29 +10,36 @@ image:
 nameOverride: ""
 fullnameOverride: ""
 
-services:
-  - type: LoadBlancer
-    name: http
+service:
+  ports:
+  - name: http
     port: 8080
     targetPort: 8080
     nodePort: 30088
-  - type: LoadBalancer
-    name: ssh
+  - name: ssh
     port: 29418
     targetPort: 29418
-    nodePort: 30418
 
 persistence:
   enabled: true
   volumes:
   - name: git
-    size: 4Gi
+    size: 1Gi
+    storageClass: csi-sc-cinderplugin
   - name: etc
-    size: 4Gi
+    size: 1Gi
   - name: index
-    size: 4Gi
+    storageClass: csi-sc-cinderplugin
+    size: 1Gi
   - name: cache
-    size: 4Gi
+    size: 2Gi
+    storageClass: csi-sc-cinderplugin
+  - name: data
+    size: 2Gi
+    storageClass: csi-sc-cinderplugin
+  - name: db
+    size: 2Gi
+    storageClass: csi-sc-cinderplugin
 
 config:
   auth:

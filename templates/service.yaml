@@ -2,26 +2,23 @@
 {{- $releaseService := .Release.Service -}}
 {{- $fullName := include "gerrit.name" . -}}
 {{- $chart := include "gerrit.chart" . -}}
-{{- range .Values.services -}}
----
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $fullName }}-{{ .name }}
+  name: {{ $fullName }}
   labels:
     app.kubernetes.io/name: {{ $fullName }}
     helm.sh/chart: {{ $chart }}
     app.kubernetes.io/instance: {{ $releaseName }}
     app.kubernetes.io/managed-by: {{ $releaseService }}
 spec:
-  type: {{ .type }}
-  ports:
-    - port: {{ .port }}
-      targetPort: {{ .targetPort }}
-      protocol: TCP
-      name: {{ .name }}
-      nodePort: {{ .nodePort }}
   selector:
     app: {{ $fullName }}
     release: {{ $releaseName }}
+  ports:
+{{ range .Values.service.ports }}
+  - port: {{ .port }}
+    targetPort: {{ .targetPort }}
+    protocol: TCP
+    name: {{ .name }}
 {{ end -}}

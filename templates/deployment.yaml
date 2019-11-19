@@ -2,7 +2,7 @@
 {{- $releaseName := .Release.Name }}
 
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "gerrit.fullname" . }}
   labels:
@@ -22,22 +22,8 @@ spec:
         app: {{ include "gerrit.name" . }}
         release: {{ .Release.Name }}
     spec:
-#      initContainers:
-#        - name: fix-volume-permissions
-#          image: busybox
-#          command: ["sh", "-c", "chown -R 1000:1000 /var/gerrit"]
-#          resources:
-#            requests:
-#              memory: 1Gi
-#              cpu: 1
-#            limits:
-#              memory: 1Gi
-#              cpu: 1
-#          volumeMounts:
-#  {{- range $volumes }}
-#            - name: gerrit-{{ .name }}
-#              mountPath: /var/gerrit/{{ .name }}
-  {{end}}
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: {{ .Chart.Name }}
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
@@ -68,22 +54,19 @@ spec:
             failureThreshold: 10
             successThreshold: 1
             timeoutSeconds: 5
-{{ if .Values.persistence.enabled }}
           volumeMounts:
             - name: gerrit-config
               mountPath: /var/gerrit/config
+{{ if .Values.persistence.enabled }}
   {{- range $volumes }}
-#            - name: gerrit-{{ .name }}
-#              mountPath: /var/gerrit/{{ .name }}
+            - name: {{ .name | quote }}
+              mountPath: /var/gerrit/{{ .name }}
   {{end}}
 {{end}}
-          resources:
-{{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
     {{- end }}
-{{ if .Values.persistence.enabled }}
       volumes:
         - name: gerrit-config
           configMap:
@@ -93,9 +76,16 @@ spec:
               path: gerrit.config
             - key: initialize-gerrit.sh
               path: initialize-gerrit.sh
+{{ if .Values.persistence.enabled }}
+  volumeClaimTemplates:
   {{- range $volumes }}
-#        - name: gerrit-{{ .name }}
-#          persistentVolumeClaim:
-#            claimName: {{ $releaseName }}-{{ .name }}
+    - metadata:
+        name: {{ .name | quote }}
+      spec:
+        storageClassName: {{ .storageClass | quote }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ .size | quote }}
   {{end}}
 {{end}}

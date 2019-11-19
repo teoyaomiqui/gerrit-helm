@@ -1,0 +1,23 @@
+{{- $fullName := include "gerrit.name" . -}}
+
+{{ if .Values.ingress.enabled }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gerrit
+spec:
+{{ if .Values.ingress.tls.enabled }}
+  tls:
+  - hosts:
+    - {{ .Values.ingress.canonicalName }}
+    secretName: {{ .Values.ingress.tls.secret }}
+{{ end }}
+  rules:
+  - host: {{ .Values.ingress.canonicalName }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ $fullName }}
+          servicePort: 8080
+{{end}}
