@@ -24,7 +24,7 @@ data:
     git config -f "${GERRIT_CONFIG}" ldap.server "${GERRIT_LDAP_SERVER}"
     git config -f "${GERRIT_CONFIG}" ldap.accountBase "${GERRIT_LDAP_ACCOUNT_BASE}"
     git config -f "${GERRIT_CONFIG}" ldap.groupBase "${GERRIT_LDAP_GROUP_BASE}"
-    git config -f "${GERRIT_CONFIG}" ldap.user "${GERRIT_LDAP_USER}"
+    git config -f "${GERRIT_CONFIG}" ldap.username "${GERRIT_LDAP_USER}"
     git config -f "${GERRIT_CONFIG}" ldap.password "${GERRIT_LDAP_PASSWORD}"
     git config -f "${GERRIT_CONFIG}" ldap.accountFullName cn
     git config -f "${GERRIT_CONFIG}" ldap.accountPattern '(&(objectClass=person)(uid=${username}))'
@@ -32,6 +32,7 @@ data:
     git config -f "${GERRIT_CONFIG}" ldap.groupMemberPattern '(&(objectClass=Posixgroup)(member=${cn}))'
     git config -f "${GERRIT_CONFIG}" ldap.sslVerify "${GERRIT_LDAP_SSL_VERIFY}"
     git config -f "${GERRIT_CONFIG}" ldap.accountSshUserName "${ACCOUNT_SSH_USER_NAME}"
+    git config -f "${GERRIT_CONFIG}" ldap.supportAnonymous "${GERRIT_LDAP_SUPPORT_ANONYMOUS}"
     git config -f "${GERRIT_CONFIG}" auth.type "ldap"
     git config -f "${GERRIT_CONFIG}" auth.gitBasicAuth 'true'
     git config -f "${GERRIT_CONFIG}" auth.gitBasicAuthPolicy HTTP
